@@ -13,7 +13,7 @@ BUILT_OBJECT_TYPE=SHARED LIBRARY
 # DO NOT EDIT :: THE CAA2 WIZARDS WILL ADD CODE HERE
 WIZARD_LINK_MODULES = JS0GROUP \
 JS0GROUP JS0FM DI0PANV2 CATMathematics CATDialogEngine CATGitInterfaces CATApplicationFrame CATObjectModelerBase \
-CATObjectSpecsModeler CATMecModInterfaces KnowledgeItf  CATGitInterfaces CATVisualization 
+CATObjectSpecsModeler CATMecModInterfaces KnowledgeItf  CATGitInterfaces CATVisualization CATProductStructure1 
 # END WIZARD EDITION ZONE
 
 LINK_WITH = $(WIZARD_LINK_MODULES)

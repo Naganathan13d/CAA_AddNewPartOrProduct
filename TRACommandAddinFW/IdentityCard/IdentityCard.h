@@ -27,6 +27,10 @@ AddPrereqComponent("ObjectSpecsModeler ",Protected);
 AddPrereqComponent("ObjectModelerBase ",Protected);
 AddPrereqComponent("KnowledgeInterfaces  ",Protected);
 AddPrereqComponent("Visualization  ",Protected);
+AddPrereqComponent("ProductStructure  ",Protected);
+
+
+ 
 
  
  

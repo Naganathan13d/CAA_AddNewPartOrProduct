@@ -26,6 +26,8 @@
 #include "CATIPrtPart.h"
 #include "CATIPrtContainer.h"
 #include "CATIGSMPoint.h"
+#include "CATIProduct.h"
+
 
 
 
@@ -51,13 +53,9 @@ class ExportedByTRAStCommandMod TRAStCommand: public CATStateCommand
 
   public:
 
-	  CATIGSMTool_var  CreateGSMTool(const CATUnicodeString& iName,int iSetAsCurrent, int iTopLevel, int iType );
+	  HRESULT AddExternalComponent(CATIProduct *iThisProd, CATDocument *iDocument, CATIProduct **oNewProduct);
 
-	  void InsertInProceduralView(CATISpecObject_var &ispSpecObject);
-
-	  CATIGSMPoint_var CreatePoint( double cord[3] ) ;
-
-	  CATISpecObject_var CreateLinePtPt(CATLISTV(CATISpecObject_var) &iaObjectsParam);
+	  HRESULT AddNewExternalComponent(CATIProduct* iThisProd, const CATUnicodeString iDocumentType,const CATUnicodeString iPartNumber, CATIProduct** oNewProduct);
 
   TRAStCommand();
   virtual ~TRAStCommand();
@@ -72,21 +70,11 @@ class ExportedByTRAStCommandMod TRAStCommand: public CATStateCommand
     /**
      * Action associated to state transitions.
      */
-  virtual CATBoolean  ActionOne(void * data);
+ // virtual CATBoolean  ActionOne(void * data);
 
   private:
 
-	  CATIGSMFactory * _pFact ;
-
-	  CATIPrtPart_var    _spPart;
-
-	  CATIPrtContainer_var          _spPartCont ;
-
-	  CATBaseUnknown_var _spMainPartBody ;
-
-  CATIndicationAgent	* _Indication;
-
-  CATIGSMFactory_var _spGSMFactory;
+	
 };
 
 //----------------------------------------------------------------------

@@ -45,6 +45,12 @@
 #include "CATIGSMProceduralView.h"
 #include "CATVisPropertiesValues.h"
 #include "CATIVisProperties.h"
+#include "CATDocumentServices.h"
+#include "CATIDocRoots.h"
+#include "CATIProduct.h"
+
+
+
 
 
 
@@ -73,15 +79,7 @@ TRAStCommand::TRAStCommand() :
 //  Valid states are CATDlgEngOneShot and CATDlgEngRepeat
   ,_Indication(NULL)
 {
-	_pFact     = NULL;
-
-	_spPart  = NULL;
-
-	_spPartCont = NULL;
-
-	_spMainPartBody = NULL;
-
-	_spGSMFactory = NULL;
+	
 }
 
 //-------------------------------------------------------------------------
@@ -100,226 +98,184 @@ TRAStCommand::~TRAStCommand()
 void TRAStCommand::BuildGraph()
 {
 
-	CATFrmEditor * pEditor = NULL;
+	
 
-	pEditor = CATFrmEditor::GetCurrentEditor();
-	if(!!pEditor)
+	CATDocument *pDoc = NULL;
+	HRESULT rc = CATDocumentServices::New("Product",
+		                          pDoc);
+
+	std::cout << std::endl << " New CATDocument Product is created " << std::endl ;
+
+	CATIDocRoots *piDocRootsOnDoc = NULL;
+	rc = pDoc->QueryInterface(IID_CATIDocRoots,
+		                      (void**) &piDocRootsOnDoc);
+
+	CATListValCATBaseUnknown_var *pRootProducts = piDocRootsOnDoc->GiveDocRoots();
+
+	std::cout << std::endl << " RootProducts List created " << std::endl ;
+
+
+	CATIProduct_var spRootProduct = NULL_var;
+
+	spRootProduct = (*pRootProducts)[1];
+			delete pRootProducts;
+			pRootProducts = NULL;
+	CATIProduct *piProductOnRoot = NULL;
+	rc = spRootProduct->QueryInterface(IID_CATIProduct,
+		                               (void**) &piProductOnRoot);
+
+	std::cout << std::endl << " Got the Root Product " << std::endl ;
+
+	CATIProduct *piInstanceProd2 = NULL;
+	CATUnicodeString partName ("Test1");
+
+	rc = AddNewExternalComponent(piProductOnRoot,
+		                           "Part",
+								   partName,
+								   &piInstanceProd2);
+
+	std::cout << std::endl << " New Part Created and added " << std::endl ;	
+
+	rc = CATDocumentServices::SaveAs(*pDoc, "D:\\tmp\\NewProduct.CATProduct");
+
+	std::cout << std::endl << " New Product Saved " << std::endl ;
+
+}
+
+HRESULT TRAStCommand::AddExternalComponent(CATIProduct *iThisProd, CATDocument *iDocument, CATIProduct **oNewProduct)
+{
+	
+
+	HRESULT rc = E_FAIL;
+	
+	if ( NULL != iDocument)
 	{
-		CATDocument *  pDocument = pEditor->GetDocument();
-		if(!!pDocument)
+		// Get RootProduct of the document to import.
+		CATIDocRoots *piDocRootsOnDoc = NULL;
+		rc = iDocument->QueryInterface(IID_CATIDocRoots,
+			                           (void**) &piDocRootsOnDoc);
+		if ( FAILED(rc) )
 		{
-			std::cout<<"doc is received" <<std::endl;
+			std::cout << "** QI on CATIDocRoots failed " << std::endl ;
+			
 		}
-		CATInit * pInit = NULL; 
-
-		pDocument->QueryInterface(IID_CATInit,  (void**)& pInit);
-		if(!!pInit)
-		{
-			std::cout<<"doc is received" <<std::endl;
-
-			CATBaseUnknown * pRootContainer = pInit->GetRootContainer("CATIPrtContainer");
-
-			if(!!pRootContainer)
-			{
-				CATIPrtContainer * pPrtContainer = (CATIPrtContainer*)pRootContainer;
-
-				std::cout<<"CATIPrtContainer is received" <<std::endl;
-				
-
-				pPrtContainer->QueryInterface(IID_CATIGSMFactory, (void**)& _pFact);
-
-				  
-    // Phase 1: Retrieve the current Part container
-    // --------------------------------------------- 
-    CATIContainer_var             spCont       = _pFact ;
-    CATIPrtContainer_var          _spPartCont   = spCont;
-	_spGSMFactory = _spPartCont;
-    _spPart       = _spPartCont -> GetPart();
-
-				
-            
-        CATIBasicTool_var spCurrentTool = _spPart -> GetCurrentTool();
-
-            CATISpecObject_var spCurrentFeat = _spPart->GetCurrentFeature();
-
-			CATISpecObject_var spParentForGSMTool = _spPart;
-
-			CATIMechanicalRootFactory_var spMechRoot = _spPartCont ;
-
-			CATISpecObject_var spSpecTool;  
-
-			 CATIPartRequest_var spPartRequest = _spPart ;
-   if ( NULL_var == spPartRequest )
-   {
-	   std::cout <<"Error on CATIPartRequest" << std::endl;
-	  
-   }
-   
-
-   HRESULT rc = spPartRequest->GetMainBody("",_spMainPartBody);
-
-			 
-
-			std::cout<<"CATIMechanicalRootFactory_var is received" <<std::endl;
-            
-          
-                HRESULT rc2 = spMechRoot -> CreateGeometricalSet("Naga",spParentForGSMTool,spSpecTool,0);
-
-				_spPart -> SetCurrentFeature(_spMainPartBody);
-
-				std::cout<<"SetCurrentFeature is received" <<std::endl;
-
-				CATICkeParmFactory_var spParmPactory = _spPartCont;
-
-				std::cout<<"CATICkeParmFactory is received" <<std::endl;
-
-				CATUnicodeString Title1 = CATMsgCatalog::BuildMessage("MyHeader","Name",NULL,0,"Set");
-
-				CATUnicodeString Title2 = CATMsgCatalog::BuildMessage("MyHeader","Spouse",NULL,0,"Set");
-
-				CATICkeParm_var spCkeParm = spParmPactory->CreateString(Title1, Title2);
-
-				std::cout<<"CATICkeParm is received" <<std::endl;
-
-				CATISpecObject_var spSpecObj = _spMainPartBody;
-
-				CATISpecObject_var spParameterSet = CATCkeGlobalFunctions::GetFunctionFactory()->GetCurrentSet(CATICkeFunctionFactory::Parameter,spSpecObj,CATCke::True);
-
-				CATIParmPublisher_var spParmPublisher = spParameterSet;
-
-
-
-				spParmPublisher->Append(spCkeParm);
-
-				std::cout<<"CATICkeParm is Appended" <<std::endl;
-
-				CATISpecObject_var spSpecObj2 = _spMainPartBody;
-
-				spSpecObj2->Update();
-
-				std::cout<<"Part is Updated" <<std::endl;
-
-		double PointCord1[3] = { 0,0,0 };
-		CATISpecObject_var spSpecObject1 = CreatePoint( PointCord1 ); 
-
-		double PointCord2[3] = { 100,0,0 };
-		CATISpecObject_var spSpecObject2 = CreatePoint( PointCord2 ); 
-
-		InsertInProceduralView(spSpecObject1);
-		InsertInProceduralView(spSpecObject2);
-
-
-		CATLISTV(CATISpecObject_var) iaObjectsParam;
-
-		iaObjectsParam.Append(spSpecObject1);
-		iaObjectsParam.Append(spSpecObject2);
-
-		CATISpecObject_var spSpecObject3 = CreateLinePtPt( iaObjectsParam ); 
-
-		InsertInProceduralView(spSpecObject3);
-
 		
-				CATISpecObject_var spSpecObj4 = _spMainPartBody;
-
-				spSpecObj4->Update();
-
-				std::cout<<"Part is Updated with Line" <<std::endl;
-
-				 CATIVisProperties * pIPropertiesOnLine = NULL ;
-  rc = spSpecObject3->QueryInterface(IID_CATIVisProperties, (void**)&pIPropertiesOnLine) ;
-  if ( FAILED(rc) )
-  {
-	  std::cout << "Error with the Line"<< std::endl;
-     
-  }
-
-  CATVisPropertiesValues               MyPropertyOnLine ;
-  CATVisPropertyType PropTypeOnLine = CATVPColor ;
-  CATVisGeomType GeomTypeOnLine     = CATVPLine ;
-
-  // The Line becomes red 
- // PropTypeOnLine = CATVPColor ;
-  MyPropertyOnLine.SetColor(255,0,0);
-  rc = pIPropertiesOnLine->SetPropertiesAtt(MyPropertyOnLine,
-                                                PropTypeOnLine,
-                                                GeomTypeOnLine);
-
-   std::cout << " Line Colour Changed to Red "<< std::endl;
-
-
-
-
-
-
-
-
-            
-
-
+		CATListValCATBaseUnknown_var *pRootProducts = 
+			piDocRootsOnDoc->GiveDocRoots();
+		CATIProduct_var spRootProduct = NULL_var;
+		if ( NULL != pRootProducts)
+			if (pRootProducts->Size())
+			{  
+				// the root product is first element of
+				// the list of root elements.
+				spRootProduct = (*pRootProducts)[1];
+				delete pRootProducts;
+				pRootProducts = NULL;
 			}
-		}
-	}
-
-
-
-
-
-}
-
-
-
-//-------------------------------------------------------------------------
-// ActionOne ()
-//-------------------------------------------------------------------------
-CATBoolean TRAStCommand::ActionOne( void *data )
-{
-  // TODO: Define the action associated with the transition 
-  // ------------------------------------------------------
-
-  return TRUE;
-}
-
-void TRAStCommand::InsertInProceduralView(CATISpecObject_var &ispSpecObject)
-{
-	CATTry
-	{
-		if(!ispSpecObject)
-			return;
-		CATIGSMProceduralView_var spGSMProcView = ispSpecObject;
-		if(!!spGSMProcView)
+			
+		piDocRootsOnDoc->Release();
+		piDocRootsOnDoc=NULL;
+		
+		CATIProduct_var spProduct = NULL_var;
+		if (NULL_var != spRootProduct)
 		{
-			spGSMProcView->InsertInProceduralView();
-			ispSpecObject->Update();
+		// We have the root product from which one
+			// will be agregated in "this"
+/** @anchor err_1 iThisProduct not tested before use */ 
+		spProduct = iThisProd->AddProduct   (spRootProduct);
+		}
+		else
+		{
+			CATUnicodeString docName = iDocument-> StorageName();
+/** @anchor err_2 iThisProduct not tested before use */ 
+			iThisProd->AddShapeRepresentation(CATUnicodeString("model"),
+				                              docName);
+			
+		}
+
+		rc = spProduct->QueryInterface(IID_CATIProduct, 
+			                           (void**) &*oNewProduct);
+		
+	}
+	return rc; 
+} 
+
+HRESULT TRAStCommand::AddNewExternalComponent(CATIProduct* iThisProd, const CATUnicodeString iDocumentType,const CATUnicodeString iPartNumber, CATIProduct** oNewProduct)
+{
+	
+
+	HRESULT rc = E_FAIL;
+	*oNewProduct = NULL;
+	
+	CATUnicodeString product = "Product";
+	CATUnicodeString part = "Part";
+
+	if ( (iDocumentType != product) &&  (iDocumentType != part) )
+	{
+		std::cout << " ERROR in AddNewExternalComponent : document type : " << iDocumentType.CastToCharPtr() << " is not allowed "<< std::endl ;
+		return rc;
+	}
+
+	// Creation of document CATProduct/CATPart
+	CATDocument *pNewDoc = NULL;
+	rc = CATDocumentServices::New(iDocumentType,
+		                          pNewDoc );
+	if ( FAILED(rc) || (NULL==pNewDoc) )
+	{
+		std::cout << "ERROR : document Creation Failed" << std::endl;
+		return rc;
+	}
+
+	
+	std::cout <<  "CAAPstAddServices.m:	document of type " <<  iDocumentType.CastToCharPtr() << " created " << std::endl;
+	
+
+	// Import document in this product
+	if ( SUCCEEDED( rc ) )
+	{
+		// Get RootProduct of the created document.
+		CATIDocRoots *piDocRootsOnNewDoc = NULL;
+		rc = pNewDoc->QueryInterface(IID_CATIDocRoots,
+			                         (void**) &piDocRootsOnNewDoc);
+		if ( SUCCEEDED( rc ) )
+		{			
+			CATListValCATBaseUnknown_var *pRootProducts =
+				piDocRootsOnNewDoc->GiveDocRoots();
+			CATIProduct_var spRootProduct;
+			if (NULL != pRootProducts)
+				if (pRootProducts->Size())
+				{  
+					// the root product is first element of
+					// the list of root elements.
+					spRootProduct = (*pRootProducts)[1];
+					delete pRootProducts;
+					pRootProducts = NULL;
+				}
+				
+				piDocRootsOnNewDoc->Release();
+				piDocRootsOnNewDoc=NULL;
+			
+				if (NULL_var != spRootProduct)
+					{
+					// Set PartNumber to the created root
+					// ATTENTION : be sure that the part number is single
+					// in a document .
+					spRootProduct -> SetPartNumber(iPartNumber);
+	
+					// We have the root product from which one
+					// will be agregated in "this"
+/** @anchor err_3 spRootProduct : tester la valeur du pointeur ( !! ) */ 
+					CATIProduct_var spProduct;
+/** @anchor err_4 iThisProduct not tested before use */ 
+					spProduct = iThisProd->AddProduct   (spRootProduct);
+					if (NULL_var ==  spProduct ) return 2;
+					rc = spProduct->QueryInterface(IID_CATIProduct, 
+						                           (void**) &*oNewProduct);
+
+				}
 		}
 	}
-	CATCatch(CATError, pError)
-	{
-	}
-	CATEndTry;
+	return rc; 
+
 }
 
-CATIGSMPoint_var TRAStCommand::CreatePoint( double cord[3] )  
-{
-
-
-		CATIGSMPoint_var spCATIGSMPoint = _spGSMFactory->CreatePoint(cord);
-		CATISpecObject_var spSpecObject = spCATIGSMPoint;
-		InsertInProceduralView ( spSpecObject );
-		return spSpecObject;
-}
-
-CATISpecObject_var TRAStCommand::CreateLinePtPt(CATLISTV(CATISpecObject_var) &iaObjectsParam)
-{
-    int size = iaObjectsParam.Size();
-    CATISpecObject_var spFirst = iaObjectsParam [size - 1];
-    CATISpecObject_var spSecond = iaObjectsParam [size];
-    
-    CATISpecObject_var spSpecTmp ;
-    if ( NULL != _pFact ) { 
-        // Create feature 
-        CATIGSMLinePtPt_var spLine = _pFact -> CreateLine(spFirst,spSecond);
-        spSpecTmp = spLine;
-       
-    }
-    return spSpecTmp;
-}
